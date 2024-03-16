@@ -46,7 +46,7 @@ def checkAsset(user, asset_id):
     if price > robux:
         print(f"Price over {robux} robux")
         return False
-    return {'Creator': creator, 'link': f"https://www.roblox.com/catalog/{asset_id}/", asset_id:asset_id}
+    return {'Creator': creator, 'link': f"https://www.roblox.com/catalog/{asset_id}/", 'asset_id':asset_id}
 
 # Function to read chat messages
 def read_chat(chat:pytchat.LiveChat):
@@ -109,6 +109,7 @@ def purchaseWinner(link, asset_id):
     close()
     open(link)
     time.sleep(2)
+    sys.delete(asset_id, "catalog")
     close()
 
     
