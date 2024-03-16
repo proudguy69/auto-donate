@@ -1,6 +1,7 @@
 import time
 import threading
 from selenium import webdriver
+from system import DonationSystem
 import pytchat
 import pyautogui as pag
 from flask import Flask, request, jsonify
@@ -26,6 +27,9 @@ driver = webdriver.Chrome()
 # The ammount of robux an item has to be
 robux = 10
 
+# the backend donation system, driver of this project, made by @tkperson
+sys = DonationSystem(driver=driver, debug=False)
+
 # Function to check if the asset is valid
 def checkAsset(user, asset_id):
     r = requests.get(f"https://economy.roblox.com/v2/assets/{asset_id}/details")
@@ -42,7 +46,7 @@ def checkAsset(user, asset_id):
     if price > robux:
         print(f"Price over {robux} robux")
         return False
-    return {'Creator': creator, 'link': f"https://www.roblox.com/catalog/{asset_id}/"}
+    return {'Creator': creator, 'link': f"https://www.roblox.com/catalog/{asset_id}/", asset_id:asset_id}
 
 # Function to read chat messages
 def read_chat(chat:pytchat.LiveChat):
@@ -59,7 +63,7 @@ def read_chat(chat:pytchat.LiveChat):
                     continue
                 if checkUser(asset['Creator']):
                     continue
-                name = {'name': asset['Creator'], 'selected': False, 'asset': asset['link']}
+                name = {'name': asset['Creator'], 'selected': False, 'asset': asset['link'],'asset_id':asset['asset_id']}
                 users.append(name) 
     else:
         for c in testChats:
@@ -69,7 +73,7 @@ def read_chat(chat:pytchat.LiveChat):
                 continue
             if checkUser(asset['Creator']):
                 continue
-            name = {'name': asset['Creator'], 'selected': False, 'asset': asset['link']}
+            name = {'name': asset['Creator'], 'selected': False, 'asset': asset['link'],'asset_id':asset['asset_id']}
             users.append(name)
 
 # Function to check if a user is already in the list
@@ -98,19 +102,16 @@ def open(link):
     driver.get(link)
 
 # Function to purchase the winner's asset
-def purchaseWinner(link):
-    time.sleep(2)
+def purchaseWinner(link, asset_id):
     open(link)
-    t = threading.Thread(target=close)
-    t.start()
-    time.sleep(1)
-    locateAndClick('images/buy_green.png')
-    time.sleep(1)
-    locateAndClick('images/buy_white.png')
-    time.sleep(1)
-    locateAndClick('images/dots.png')
-    time.sleep(1)
-    locateAndClick('images/image.png')
+    sys.buy(asset_id, "catalog")
+    time.sleep(2)
+    close()
+    open(link)
+    time.sleep(2)
+    close()
+
+    
 
 # Route to start the chat stream
 @app.route('/api/stream', methods=['POST'])
@@ -141,7 +142,8 @@ def winner():
     for person in users:
         if person['name'] == name:
             link = person['asset']
-            t = threading.Thread(target=purchaseWinner, args=[link])
+            asset_id = person["asset_id"]
+            t = threading.Thread(target=purchaseWinner, args=[link, asset_id])
             t.start()
             users = []
     for person in users:
@@ -164,7 +166,7 @@ def changeRobux():
 
 # Open the login page and make the user log in
 driver.get('http://localhost:5173/')
-open('https://www.roblox.com/login')
+sys.login()
 
 # Run the Flask app
 app.run(debug=False)
